@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 import os
 import zipfile
 import subprocess
+import pandas as pd
 
 router = APIRouter()  # Define the APIRouter instance
 
@@ -29,3 +30,25 @@ def download_iris_dataset():
 
     except Exception as e:
         return {"error": str(e)}
+
+@router.get("/load", tags=["Data"])
+def load_iris_dataset():
+    """
+    Loads the Iris dataset from the src/data directory as a DataFrame and returns it as JSON.
+    """
+    try:
+        # Path to the dataset
+        dataset_path = "src/data/iris.csv"
+
+        # Check if the file exists
+        if not os.path.exists(dataset_path):
+            raise HTTPException(status_code=404, detail="Dataset file not found. Please download it first.")
+
+        # Load the dataset into a Pandas DataFrame
+        df = pd.read_csv(dataset_path)
+
+        # Convert the DataFrame to JSON
+        return {"data": df.to_dict(orient="records")}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
