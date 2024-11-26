@@ -1,32 +1,29 @@
 from fastapi import APIRouter
 import os
+import zipfile
 import subprocess
 
-router = APIRouter()
+router = APIRouter()  # Define the APIRouter instance
 
-@router.get("/data/download")
+@router.get("/download", tags=["Data"])
 def download_iris_dataset():
     """
     Downloads the Iris dataset from Kaggle and saves it to the src/data directory.
     """
     try:
-        # Define the Kaggle dataset identifier
         dataset = "uciml/iris"
-
-        # Define the destination folder
         destination = "src/data"
-
-        # Ensure the destination directory exists
         os.makedirs(destination, exist_ok=True)
 
-        # Use the Kaggle CLI to download the dataset
+        # Download dataset
         subprocess.run(["kaggle", "datasets", "download", "-d", dataset, "-p", destination], check=True)
 
-        # Unzip the dataset (if necessary)
+        # Unzip dataset if needed
         for file in os.listdir(destination):
             if file.endswith(".zip"):
-                subprocess.run(["unzip", "-o", os.path.join(destination, file), "-d", destination])
-                os.remove(os.path.join(destination, file))
+                with zipfile.ZipFile(os.path.join(destination, file), 'r') as zip_ref:
+                    zip_ref.extractall(destination)
+                os.remove(os.path.join(destination, file))  # Clean up zip file
 
         return {"message": "Dataset downloaded successfully", "path": destination}
 

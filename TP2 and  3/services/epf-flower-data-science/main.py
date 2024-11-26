@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from src.app import get_application
-from src.api.routes import data  # Import the data routes
+from src.api.routes import data  # Import the data module
 
 app = get_application()
 
