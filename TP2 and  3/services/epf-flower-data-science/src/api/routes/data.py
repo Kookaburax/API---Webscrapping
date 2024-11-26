@@ -4,6 +4,7 @@ import zipfile
 import subprocess
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
 
 
 router = APIRouter()  # Define the APIRouter instance
@@ -95,3 +96,46 @@ def process_iris_dataset():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
+@router.post("/split", tags=["Data"])
+def split_iris_dataset(test_size: float = 0.2, random_state: int = 42):
+    """
+    Splits the Iris dataset into training and testing sets.
+    Allows specifying test size and random seed.
+    """
+    try:
+        # Path to the dataset
+        dataset_path = "src/data/iris.csv"
+
+        # Check if the file exists
+        if not os.path.exists(dataset_path):
+            raise HTTPException(status_code=404, detail="Dataset file not found. Please download it first.")
+
+        # Load the dataset into a Pandas DataFrame
+        df = pd.read_csv(dataset_path)
+
+        # Rename columns to standardized names
+        column_mapping = {
+            "SepalLengthCm": "sepal_length",
+            "SepalWidthCm": "sepal_width",
+            "PetalLengthCm": "petal_length",
+            "PetalWidthCm": "petal_width",
+            "Species": "species"
+        }
+        df.rename(columns=column_mapping, inplace=True)
+
+        # Remove the 'Iris-' prefix from the 'species' column
+        df['species'] = df['species'].str.replace('Iris-', '', regex=False)
+
+        # Split the dataset into train and test sets
+        train, test = train_test_split(
+            df, test_size=test_size, random_state=random_state, stratify=df['species']
+        )
+
+        # Convert the train and test sets to JSON
+        return {
+            "train": train.to_dict(orient="records"),
+            "test": test.to_dict(orient="records")
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
