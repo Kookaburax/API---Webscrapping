@@ -92,7 +92,8 @@ REST (Representational State Transfer) is an architectural style for designing n
 
 - **Resources:** Everything is a resource, identified by a unique URI.
 
-- **HTTP Methods:** CRUD operations are performed using standard HTTP methods (GET, POST, PUT, DELETE).
+- **HTTP Methods:** CRUD operations are performed ugit commit -m "Updated README.md with answers to REST API questions"
+sing standard HTTP methods (GET, POST, PUT, DELETE).
 
 - **Stateless:** Each request from a client contains all the information needed to understand and fulfill the request.
 
