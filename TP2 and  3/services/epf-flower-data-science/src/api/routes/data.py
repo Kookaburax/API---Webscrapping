@@ -4,6 +4,8 @@ import zipfile
 import subprocess
 import pandas as pd
 import pickle
+from pydantic import BaseModel
+import numpy as np
 
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import MinMaxScaler
@@ -223,3 +225,35 @@ def train_classification_model():
 
     except Exception as e:
          raise HTTPException(status_code=500, detail=f"An error occurred during training: {str(e)}")
+
+class PredictionInput(BaseModel):
+    input_data: list
+
+@router.post("/predict", tags=["Model"])
+def predict(input_data: PredictionInput):
+    """
+    Predict the class of Iris flowers using the trained model.
+    """
+    try:
+        # Load the trained model
+        model_path = "src/models/iris_model.pkl"
+        with open(model_path, "rb") as f:
+            model = pickle.load(f)
+
+        # Validate input data
+        data = np.array(input_data.input_data)
+        if data.ndim != 2 or data.shape[1] != 4:
+            raise HTTPException(
+                status_code=400,
+                detail="Input data must be a 2D array with 4 features per sample."
+            )
+
+        # Make predictions
+        predictions = model.predict(data)
+
+        return {"predictions": predictions.tolist()}
+
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Model file not found. Train the model first.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
