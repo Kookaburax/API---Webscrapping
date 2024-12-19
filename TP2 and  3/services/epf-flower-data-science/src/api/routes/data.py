@@ -3,9 +3,12 @@ import os
 import zipfile
 import subprocess
 import pandas as pd
+import pickle
 
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+from src.services.parameters import get_model_parameters
 
 router = APIRouter()  # Define the APIRouter instance
 
@@ -112,11 +115,15 @@ def process_iris_dataset():
         feature_columns = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width']
         df[feature_columns] = scaler.fit_transform(df[feature_columns])
 
+        # Save the processed dataset back to a CSV file
+        df.to_csv(dataset_path, index=False)
+
         # Return the processed dataset as JSON
         return {"processed_data": df.to_dict(orient="records")}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
 
 
 @router.post("/split", tags=["Data"])
@@ -162,3 +169,57 @@ def split_iris_dataset(test_size: float = 0.2, random_state: int = 42):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    
+@router.get("/parameters/{model_name}", tags=["Data"])
+def fetch_model_parameters(model_name: str):
+    """
+    Fetches the model parameters for the specified model.
+
+    Args:
+        model_name (str): The name of the model (e.g., "DecisionTreeClassifier").
+
+    Returns:
+        dict: The parameters for the specified model.
+    """
+    try:
+        parameters = get_model_parameters(model_name)
+        return {"model_name": model_name, "parameters": parameters}
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.post("/train", tags=["Model"])
+def train_classification_model():
+    """
+    Trains a Decision Tree Classifier on the processed Iris dataset
+    and saves the model to the src/models directory.
+    """
+    try:
+        # Path to the dataset
+        dataset_path = "src/data/iris.csv"
+        if not os.path.exists(dataset_path):
+            raise HTTPException(status_code=404, detail="Processed dataset not found. Please process it first.")
+
+        # Load the dataset
+        df = pd.read_csv(dataset_path)
+
+        # Prepare features and target
+        X = df[['sepal_length', 'sepal_width', 'petal_length', 'petal_width']]
+        y = df['species']
+
+        # Train the model
+        model = DecisionTreeClassifier(criterion="gini", max_depth=3)
+        model.fit(X, y)
+
+        # Save the trained model
+        model_dir = "src/models"
+        os.makedirs(model_dir, exist_ok=True)
+        model_path = os.path.join(model_dir, "iris_model.pkl")
+        with open(model_path, "wb") as f:
+            pickle.dump(model, f)
+
+        return {"message": "Model trained and saved successfully", "model_path": model_path}
+
+    except Exception as e:
+         raise HTTPException(status_code=500, detail=f"An error occurred during training: {str(e)}")
